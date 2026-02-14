@@ -207,18 +207,15 @@ class LlamaConversationEntity(ConversationEntity, AbstractConversationAgent):
                 matching_entities = await embeddings_db.matching_entities(user_input=user_input_vector)
                 LOGGER.debug("Time for embeddings entities: %s seconds", time.time() - start_time)
 
-                prompt = []
-
                 if matching_entities:
-                    prompt.append(
-                        "Static Context Update:"
+                    prompt = [
+                        "Static Context Update:",
+                        yaml_util.dump(list(matching_entities.values())),
+                    ]
+                    chat_log.content.insert(
+                        len(chat_log.content) - 1,
+                        SystemContent(content="\n".join(prompt))
                     )
-                    prompt.append(yaml_util.dump(list(matching_entities.values())))
-
-                chat_log.content.insert(
-                    len(chat_log.content) - 1,
-                    SystemContent(content="\n".join(prompt))
-                )
 
         tools: list[Tool] = []
         if chat_log.llm_api:

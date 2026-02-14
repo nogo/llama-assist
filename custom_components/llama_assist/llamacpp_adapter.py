@@ -13,12 +13,12 @@ from .const import LOGGER, EMBEDDINGS_TIMEOUT, HEALTHCHECK_TIMEOUT, CONVERSATION
 
 
 # Exceptions
-class RequestError(BaseException):
+class RequestError(Exception):
     """Raised when an API request fails (e.g. network or client error)."""
     pass
 
 
-class ResponseError(BaseException):
+class ResponseError(Exception):
     """Raised when the API returns an error status or payload."""
 
     def __init__(self, message: str, status_code: Optional[int] = None):
@@ -138,7 +138,7 @@ class LlamaCppClient:
         if tools:
             payload["tools"] = [tool.to_dict() for tool in tools]
 
-        LOGGER.debug(f"\nCalling Llama.cpp API at {url} with payload: {json.dumps(payload)}\n")
+        LOGGER.debug("\nCalling Llama.cpp API at %s with payload: %s\n", url, json.dumps(payload))
 
         try:
             if not stream:
@@ -150,16 +150,16 @@ class LlamaCppClient:
                 content = (choice.get("content") or "").replace("\n\n", "", 1)
                 reasoning_content = choice.get("reasoning_content", "")
 
-                LOGGER.debug(f"\nReceived response from Llama.cpp API:")
-                LOGGER.debug(f"Content: {content}")
-                LOGGER.debug(f"Reasoning content: {reasoning_content}")
-                LOGGER.debug(f"Tool calls: {choice.get('tool_calls', [])}")
-                LOGGER.debug(f"Finish reason: {choice.get('finish_reason', 'unknown')}")
-                LOGGER.debug(f"Time (prompt): {data.get('timings', {}).get('prompt_ms', 'unknown')} ms")
-                LOGGER.debug(f"Time (completion): {data.get('timings', {}).get('predicted_ms', 'unknown')} ms")
-                LOGGER.debug(f"Tokens (prompt): {data.get('usage', {}).get('prompt_tokens', 'unknown')}")
-                LOGGER.debug(f"Tokens (completion): {data.get('usage', {}).get('completion_tokens', 'unknown')}")
-                LOGGER.debug(f"Full payload: {json.dumps(payload)}\n")
+                LOGGER.debug("\nReceived response from Llama.cpp API:")
+                LOGGER.debug("Content: %s", content)
+                LOGGER.debug("Reasoning content: %s", reasoning_content)
+                LOGGER.debug("Tool calls: %s", choice.get('tool_calls', []))
+                LOGGER.debug("Finish reason: %s", choice.get('finish_reason', 'unknown'))
+                LOGGER.debug("Time (prompt): %s ms", data.get('timings', {}).get('prompt_ms', 'unknown'))
+                LOGGER.debug("Time (completion): %s ms", data.get('timings', {}).get('predicted_ms', 'unknown'))
+                LOGGER.debug("Tokens (prompt): %s", data.get('usage', {}).get('prompt_tokens', 'unknown'))
+                LOGGER.debug("Tokens (completion): %s", data.get('usage', {}).get('completion_tokens', 'unknown'))
+                LOGGER.debug("Full payload: %s\n", json.dumps(payload))
 
                 tool_calls = [
                     ToolCall(

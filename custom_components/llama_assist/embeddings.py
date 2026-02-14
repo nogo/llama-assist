@@ -51,8 +51,8 @@ class EmbeddingsDatabase:
         self.overwrite = overwrite
         self.blacklist_tools = blacklist_tools or []
 
-        self._existing_tools: List[str] = []
-        self._existing_entities: List[str] = []
+        self._existing_tools: set[str] = set()
+        self._existing_entities: set[str] = set()
 
         # In-memory caches
         # self._tools_cache: Dict[str, Tool] = {}
@@ -101,14 +101,14 @@ class EmbeddingsDatabase:
         cur.execute("SELECT name FROM tool_embeddings")
         for (name,) in cur.fetchall():
             if name not in self.blacklist_tools:
-                self._existing_tools.append(name)
+                self._existing_tools.add(name)
 
     def _load_existing_entities(self) -> None:
         """Load existing entities from the database into the cache."""
         cur = self.conn.cursor()
         cur.execute("SELECT name FROM entity_embeddings")
         for (name,) in cur.fetchall():
-            self._existing_entities.append(name)
+            self._existing_entities.add(name)
 
     def close(self) -> None:
         """Close underlying SQLite connection."""
@@ -151,7 +151,7 @@ class EmbeddingsDatabase:
         ]
         self._bulk_insert_tool_records(records)
         for t in new_tools:
-            self._existing_tools.append(t.name)
+            self._existing_tools.add(t.name)
 
     def _bulk_insert_tool_records(self, records: List[ToolRecord]) -> None:
         """Insert or replace multiple ToolRecords in one transaction."""
@@ -194,7 +194,7 @@ class EmbeddingsDatabase:
         ]
         self._bulk_insert_entity_records(records)
         for eid in new_ids:
-            self._existing_entities.append(eid)
+            self._existing_entities.add(eid)
 
     def _bulk_insert_entity_records(self, records: List[EntityRecord]) -> None:
         """Insert or replace multiple EntityRecords in one transaction."""

@@ -11,7 +11,7 @@ from homeassistant.components.todo import DOMAIN as TODO_DOMAIN
 from homeassistant.components.weather import INTENT_GET_WEATHER
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import area_registry, floor_registry, device_registry, intent
-from homeassistant.helpers.llm import LLMContext, API, APIInstance, _get_exposed_entities, _selector_serializer, \
+from homeassistant.helpers.llm import LLMContext, API, APIInstance, _get_exposed_entities, selector_serializer, \
     NO_ENTITIES_PROMPT, DYNAMIC_CONTEXT_PROMPT, Tool, IntentTool, CalendarGetEventsTool, TodoGetItemsTool, ScriptTool, \
     GetLiveContextTool
 from homeassistant.util import yaml as yaml_util
@@ -55,8 +55,14 @@ class LlamaAssistAPI(API):
 
         # # Hack to check if option "use embeddings for entities" is set without additional function parameters
         for entry in self.hass.config_entries.async_entries(DOMAIN):
-            url_from_context = llm_context.context.origin_event.data.get("old_state", {}).name.removeprefix(
-                "Llama Assist (").removesuffix(")")
+            try:
+                old_state = llm_context.context.origin_event.data.get("old_state")
+                if old_state is None:
+                    continue
+                url_from_context = old_state.name.removeprefix(
+                    "Llama Assist (").removesuffix(")")
+            except AttributeError:
+                continue
 
             if entry.data.get(CONF_COMPLETION_SERVER_URL, "") == url_from_context:
                 # If the entry's base URL matches the target ID, use the option for embeddings
@@ -78,7 +84,7 @@ class LlamaAssistAPI(API):
             api_prompt=self._async_get_api_prompt(llm_context, exposed_entities),
             llm_context=llm_context,
             tools=self._async_get_tools(llm_context, exposed_entities),
-            custom_serializer=_selector_serializer,
+            custom_serializer=selector_serializer,
         )
 
     @callback
@@ -86,7 +92,7 @@ class LlamaAssistAPI(API):
         if not exposed_entities or not exposed_entities["entities"]:
             return NO_ENTITIES_PROMPT
 
-        parts = [*self._async_get_preable(llm_context)]
+        parts = [*self._async_get_preamble(llm_context)]
 
         if not self.use_embedding_for_entities:
             parts += self._async_get_exposed_entities_prompt(llm_context, exposed_entities)
@@ -94,7 +100,7 @@ class LlamaAssistAPI(API):
         return "\n".join(parts)
 
     @callback
-    def _async_get_preable(self, llm_context: LLMContext) -> list[str]:
+    def _async_get_preamble(self, llm_context: LLMContext) -> list[str]:
         """Return the prompt for the API."""
 
         prompt = [
